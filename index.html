@@ -1,0 +1,302 @@
+<script type="text/javascript">
+  const typeOptions = [
+    { value: "date", name: "Date" },
+    { value: "range", name: "Date Range" },
+    { value: "ordinal", name: "Ordinal Date" },
+  ];
+
+  const monthOptions = [
+    { name: "Jan", days: 31 },
+    { name: "Feb", days: 29 },
+    { name: "Mar", days: 31 },
+    { name: "Apr", days: 30 },
+    { name: "May", days: 31 },
+    { name: "Jun", days: 30 },
+    { name: "Jul", days: 31 },
+    { name: "Aug", days: 31 },
+    { name: "Sep", days: 30 },
+    { name: "Oct", days: 31 },
+    { name: "Nov", days: 30 },
+    { name: "Dec", days: 31 },
+  ];
+
+  const ordinalOptions = [
+    { value: 0, name: "First" },
+    { value: 1, name: "Second" },
+    { value: 2, name: "Third" },
+    { value: 3, name: "Fourth" },
+    { value: 4, name: "Fifth" },
+    { value: -1, name: "Every" },
+  ];
+
+  const dayOptions = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  RED.nodes.registerType("special-date", {
+    category: "time",
+    defaults: {
+      name: { value: "" },
+      dates: {
+        value: [{
+          type: "date",
+          startDate: "1",
+          startDay: "0",
+          startMonth: "0",
+          startMonthOrdinal: "0",
+          startOrdinal: "0",
+          endDate: "1",
+          endMonth: "0",
+          response: "",
+        }]
+      },
+      defaultResponse: { value: "No Match" },
+    },
+    inputs: 1,
+    outputs: 1,
+    color: "#c0deed",
+    label: function () {
+      return this.name || "Special Date";
+    },
+    paletteLabel: "Special Date",
+    inputLabel: "input",
+    outputLabels: ["output"],
+    icon: "font-awesome/fa-calendar-check-o",
+    oneditprepare: function () {
+      let node = this;
+
+      $("#node-input-dates-container").css({
+        height: "100%",
+        "min-width": "450px"
+      }).editableList({
+        addItem: function (container, index, date) {
+          if (!date.hasOwnProperty("type")) {
+            date = {
+              type: "date",
+              startDate: "1",
+              startDay: "0",
+              startMonth: "0",
+              startMonthOrdinal: "0",
+              startOrdinal: "0",
+              endDate: "1",
+              endMonth: "0",
+              response: "",
+            };
+          }
+
+          let timestamp = Date.now();
+
+          container.css({
+            overflow: "hidden",
+            whitespace: "nowrap",
+          });
+
+          let inputRows = $("<div></div>").appendTo(container);
+          inputRows.css({
+            "margin-left": "5px",
+            "width": "100%",
+          });
+
+          // Setup Header Buttons
+
+          let buttonGroup = $("<div class='button-group'></div>").appendTo(inputRows);
+          buttonGroup.css({
+            display: "flex",
+            "justify-content": "center",
+            "margin-bottom": "10px",
+          });
+
+          typeOptions.forEach(opt => {
+            let button = $(`<button type="button" class="red-ui-button toggle type-group" data-type="${opt.value}">${opt.name}</button>`).appendTo(buttonGroup);
+            button.css("width", "110px");
+
+            if (opt.value === date.type) button.addClass("selected");
+          });
+
+          container.find(".type-group").on("click", function () {
+            $(this).siblings(".type-group").removeClass("selected");
+            $(this).addClass("selected");
+
+            typeOptions.forEach(opt => {
+              container.find(`.${opt.value}-group`).hide();
+            });
+            container.find(`.${$(this).attr("data-type")}-group`).show();
+          });
+
+          let row = $("<div class='form-row'></div>").appendTo(inputRows);
+          row.css({
+            display: "flex",
+            "align-items": "baseline",
+          });
+
+          // Variables for entries
+          let input, select, span;
+
+          // Date Range "From" text
+          span = $("<span class='range-group'>From</span>").appendTo(row);
+          span.css("margin", "0 10px 0 5px");
+          if (date.type !== "range") span.css("display", "none");
+
+          // Date & Date Range Start Month Select
+          select = $("<select name='startMonth' class='date-group range-group'></select>").appendTo(row);
+          select.css({
+            width: "65px",
+            "margin-right": "5px",
+          });
+          monthOptions.forEach((opt, i) => $(`<option value="${i}">${opt.name}</option>`).appendTo(select));
+          select.val(date.startMonth);
+          select.on("change", function () {
+            $(this).siblings("input[name='startDate']").attr("max", monthOptions[parseInt($(this).val())].days);
+          });
+          if (date.type !== "date" && date.type !== "range")
+            select.css("display", "none");
+
+          // Date & Date Range Start Date Input
+          input = $("<input type='number' name='startDate' class='date-group range-group'></input>").appendTo(row);
+          input.css("width", "65px");
+          input.attr("max", monthOptions[date.startMonth].days);
+          input.val(date.startDate);
+          if (date.type !== "date" && date.type !== "range")
+            input.css("display", "none");
+
+          // Date Range "To" Text
+          span = $("<span class='range-group'>To</span>").appendTo(row);
+          span.css("margin", "0 10px");
+          if (date.type !== "range") span.css("display", "none");
+
+          // Date Range End Month Select
+          select = $("<select name='endMonth' class='range-group'></select>").appendTo(row);
+          select.css({
+            width: "65px",
+            "margin-right": "5px",
+          });
+          monthOptions.forEach((opt, i) => $(`<option value="${i}">${opt.name}</option>`).appendTo(select));
+          select.val(date.endMonth);
+          select.on("change", function () {
+            $(this).siblings("input[name='endDate']").attr("max", monthOptions[parseInt($(this).val())].days);
+          });
+          if (date.type !== "range") select.css("display", "none");
+
+          // Date Range End Date Input
+          input = $("<input type='number' name='endDate' class='range-group'></input>").appendTo(row);
+          input.css("width", "65px");
+          input.attr("max", monthOptions[date.endMonth].days);
+          input.val(date.endDate);
+          if (date.type !== "range") input.css("display", "none");
+
+          // Ordinal Date ordinal select
+          select = $("<select name='startOrdinal' class='ordinal-group'></select>").appendTo(row);
+          select.css({
+            width: "100px",
+            margin: "0 5px",
+          });
+          ordinalOptions.forEach((opt) => $(`<option value="${opt.value}">${opt.name}</option>`).appendTo(select));
+          select.val(date.startOrdinal);
+          if (date.type !== "ordinal") select.css("display", "none");
+
+          // Ordinal Date day select
+          select = $("<select name='startDay' class='ordinal-group'></select>").appendTo(row);
+          select.css({
+            width: "100px",
+            margin: "0 5px",
+          });
+          dayOptions.forEach((opt, i) => $(`<option value="${i}">${opt}</option>`).appendTo(select));
+          select.val(date.startDay);
+          if (date.type !== "ordinal") select.css("display", "none");
+
+          // Ordinal Date "of" text
+          span = $("<span class='ordinal-group'>of</span>").appendTo(row);
+          span.css("margin", "0 10px");
+          if (date.type !== "ordinal") span.css("display", "none");
+
+          // Ordinal Date month select
+          select = $("<select name='startMonthOrdinal' class='ordinal-group'></select>").appendTo(row);
+          select.css({
+            width: "100px",
+            margin: "0 5px",
+          });
+          monthOptions.forEach((opt, i) => $(`<option value="${i}">${opt.name}</option>`).appendTo(select));
+          $("<option value='-1'>Any Month</option>").appendTo(select);
+          select.val(date.startMonthOrdinal);
+          if (date.type !== "ordinal") select.css("display", "none");
+
+          // Response field
+          row = $("<div class='form-row'></div>").appendTo(inputRows);
+          $(`<label for="${timestamp}">Response</label>`).appendTo(row);
+          input = $(`<input type="text" name="response" id="${timestamp}" placeholder="Response"></input>`).appendTo(row);
+          input.val(date.response);
+        },
+        sortable: true,
+        removable: true,
+      });
+
+      node.dates.forEach(date => $("#node-input-dates-container").editableList("addItem", date));
+    },
+    oneditsave: function () {
+      let dates = $("#node-input-dates-container").editableList("items");
+      let node = this;
+
+      node.dates = [];
+      dates.each(function () {
+        node.dates.push({
+          type: $(this).find(".type-group.selected").attr("data-type"),
+          startDate: $(this).find("input[name='startDate']").val(),
+          startDay: $(this).find("select[name='startDay']").val(),
+          startMonth: $(this).find("select[name='startMonth']").val(),
+          startMonthOrdinal: $(this).find("select[name='startMonthOrdinal']").val(),
+          startOrdinal: $(this).find("select[name='startOrdinal']").val(),
+          endDate: $(this).find("input[name='endDate']").val(),
+          endMonth: $(this).find("select[name='endMonth']").val(),
+          response: $(this).find("input[name='response']").val(),
+        });
+      });
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="special-date">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-defaultResponse">Default Response</label>
+    <input type="text" id="node-input-defaultResponse" placeholder="Enter a default response" />
+  </div>
+  <div class="form-row node-input-rule-container-row">
+    <ol id="node-input-dates-container"></ol>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="special-date">
+<p>Determines if a date is in a user defined list of special dates.</p>
+<h3>Inputs</h3>
+<dl class="message-properties">
+  <dt>payload <span class="property-type">Object | any</span></dt>
+  <dd>Input triggering the date check.</dd>
+</dl>
+<h3>Outputs</h3>
+<dl class="message-properties">
+  <dt>payload <span class="property-type">string</span></dt>
+  <dd>The response string for the matched special date, or the default response string if no match was found.</dd>
+</dl>
+<h3>Details</h3>
+<p>When a message arrives, if the payload is an Object with a `date` property, the node will check the property against the configured special dates. If the payload is not an Object, or the Object does not contain a `date` property, then the current date will be checked.  The appropriate response string will be set as the message payload and sent to the output.</p>
+<h3>Configuration</h3>
+<dl class="message-properties">
+  <dt>Default Response <span class="property-type">string</span></dt>
+  <dd>Response to be sent if no matching date definition is found. Defaults to "No Match".</dd>
+  <dt>Date</dt>
+  <dd>Match a specific date</dd>
+  <dt>Date Range</dt>
+  <dd>Match dates between the "From" date and the "To" date, inclusively.</dd>
+  <dt>Ordinal Date</dt>
+  <dd>Match an ordinal date description, such as "Third Tuesday of September" or "Every Friday of Any Month".</dd>
+</dl>
+</script>
