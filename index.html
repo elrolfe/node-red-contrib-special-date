@@ -1,0 +1,382 @@
+<script type="text/javascript">
+  const typeOptions = [
+    { value: "date", name: "Date" },
+    { value: "range", name: "Date Range" },
+    { value: "ordinal", name: "Ordinal Date" },
+    { value: "ordinal-offset", name: "Ordinal Date Offset Range" },
+  ];
+
+  const monthOptions = [
+    { name: "Jan", days: 31 },
+    { name: "Feb", days: 29 },
+    { name: "Mar", days: 31 },
+    { name: "Apr", days: 30 },
+    { name: "May", days: 31 },
+    { name: "Jun", days: 30 },
+    { name: "Jul", days: 31 },
+    { name: "Aug", days: 31 },
+    { name: "Sep", days: 30 },
+    { name: "Oct", days: 31 },
+    { name: "Nov", days: 30 },
+    { name: "Dec", days: 31 },
+  ];
+
+  const ordinalOptions = [
+    "First",
+    "Second",
+    "Third",
+    "Fourth",
+    "Fifth",
+  ];
+
+  const dayOptions = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  RED.nodes.registerType("special-date", {
+    category: "time",
+    defaults: {
+      dates: {
+        value: [{
+          type: "date",
+          startDate: "1",
+          startDay: "0",
+          startMonth: "0",
+          startMonthOrdinal: "0",
+          startOrdinal: "0",
+          endDate: "1",
+          endMonth: "0",
+          offsetOrdinalBefore: "0",
+          offsetOrdinalAfter: "0",
+          response: "",
+        }]
+      },
+      defaultResponse: { value: "None", required: true },
+      name: { value: "" },
+    },
+    inputs: 1,
+    outputs: 1,
+    color: "#c0deed",
+    label: function () {
+      return this.name || "Special Date";
+    },
+    paletteLabel: "Special Date",
+    inputLabel: "input",
+    outputLabels: ["output"],
+    icon: "font-awesome/fa-calendar-check-o",
+    oneditprepare: function () {
+      let node = this;
+
+      $("#node-input-dates-container").css({
+        height: "100%",
+        minWidth: "450px"
+      }).editableList({
+        addItem: function (container, index, date) {
+          if (!date.hasOwnProperty("type")) {
+            date = {
+              type: "date",
+              startDate: "1",
+              startDay: "0",
+              startMonth: "0",
+              startMonthOrdinal: "0",
+              startOrdinal: "0",
+              endDate: "1",
+              endMonth: "0",
+              offsetOrdinalBefore: "0",
+              offsetOrdinalAfter: "0",
+              response: "",
+            };
+          }
+
+          let timestamp = Date.now();
+
+          container.css({
+            overflow: "hidden",
+            whitespace: "nowrap",
+          });
+
+          let inputRows = $("<div></div>").appendTo(container);
+          inputRows.css({
+            marginLeft: "5px",
+            width: "100%",
+          });
+
+          // Variables for entries
+          let input, option, select, span;
+
+          // Setup Header Dropdown
+
+          let selectGroup = $("<div></div>").appendTo(inputRows);
+          selectGroup.css({
+            display: "flex",
+            justifyContent: "center",
+            marginBottom: "10px",
+          });
+
+          select = $("<select name='type'></select>").appendTo(selectGroup);
+          typeOptions.forEach(opt => $(`<option value="${opt.value}">${opt.name}</option>`).appendTo(select));
+          select.val(date.type);
+          select.on("change", function () {
+            if ($(this).val() === "ordinal-offset") {
+              if (container.find("select[name='startOrdinal']").val() === "-1")
+                container.find("select[name='startOrdinal']").val("0");
+
+              if (container.find("select[name='startMonthOrdinal']").val() === "-1")
+                container.find("select[name='startMonthOrdinal']").val("0");
+
+              container.find("option[value='-1']").attr("disabled", "disabled");
+            } else
+              container.find("option[value='-1']").removeAttr("disabled");
+
+            typeOptions.forEach(opt => container.find(`.${opt.value}-group`).hide());
+            container.find(`.${$(this).val()}-group`).show();
+          });
+
+          // Body
+          let row = $("<div class='form-row'></div>").appendTo(inputRows);
+          row.css({
+            display: "flex",
+            alignItems: "baseline",
+          });
+
+          // Date Range "From" text
+          span = $("<span class='range-group'>From</span>").appendTo(row);
+          span.css("margin", "0 10px 0 5px");
+          if (date.type !== "range") span.css("display", "none");
+
+          // Date & Date Range Start Month Select
+          select = $("<select name='startMonth' class='date-group range-group'></select>").appendTo(row);
+          select.css({
+            width: "65px",
+            marginRight: "5px",
+          });
+          monthOptions.forEach((opt, i) => $(`<option value="${i}">${opt.name}</option>`).appendTo(select));
+          select.val(date.startMonth);
+          select.on("change", function () {
+            $(this).siblings("input[name='startDate']").attr("max", monthOptions[parseInt($(this).val())].days);
+          });
+          if (date.type !== "date" && date.type !== "range")
+            select.css("display", "none");
+
+          // Date & Date Range Start Date Input
+          input = $("<input type='number' name='startDate' class='date-group range-group'></input>").appendTo(row);
+          input.css("width", "65px");
+          input.attr("min", "1");
+          input.attr("max", monthOptions[date.startMonth].days);
+          input.val(date.startDate);
+          if (date.type !== "date" && date.type !== "range")
+            input.css("display", "none");
+
+          // Date Range "To" Text
+          span = $("<span class='range-group'>To</span>").appendTo(row);
+          span.css("margin", "0 10px");
+          if (date.type !== "range") span.css("display", "none");
+
+          // Date Range End Month Select
+          select = $("<select name='endMonth' class='range-group'></select>").appendTo(row);
+          select.css({
+            width: "65px",
+            marginRight: "5px",
+          });
+          monthOptions.forEach((opt, i) => $(`<option value="${i}">${opt.name}</option>`).appendTo(select));
+          select.val(date.endMonth);
+          select.on("change", function () {
+            $(this).siblings("input[name='endDate']").attr("max", monthOptions[parseInt($(this).val())].days);
+          });
+          if (date.type !== "range") select.css("display", "none");
+
+          // Date Range End Date Input
+          input = $("<input type='number' name='endDate' class='range-group'></input>").appendTo(row);
+          input.css("width", "65px");
+          input.attr("min", "1");
+          input.attr("max", monthOptions[date.endMonth].days);
+          input.val(date.endDate);
+          if (date.type !== "range") input.css("display", "none");
+
+          // Ordinal Date ordinal select
+          select = $("<select name='startOrdinal' class='ordinal-group ordinal-offset-group'></select>").appendTo(row);
+          select.css({
+            width: "100px",
+            margin: "0 5px",
+          });
+          ordinalOptions.forEach((opt, i) => $(`<option value="${i}">${opt}</option>`).appendTo(select));
+          option = $("<option value='-1'>Every</option>").appendTo(select);
+          if (date.type === "ordinal-offset") option.attr("disabled", "disabled");
+          select.val(date.startOrdinal);
+          if (date.type !== "ordinal" && date.type !== "ordinal-offset") select.css("display", "none");
+
+          // Ordinal Date day select
+          select = $("<select name='startDay' class='ordinal-group ordinal-offset-group'></select>").appendTo(row);
+          select.css({
+            width: "100px",
+            margin: "0 5px",
+          });
+          dayOptions.forEach((opt, i) => $(`<option value="${i}">${opt}</option>`).appendTo(select));
+          select.val(date.startDay);
+          if (date.type !== "ordinal" && date.type !== "ordinal-offset") select.css("display", "none");
+
+          // Ordinal Date "of" text
+          span = $("<span class='ordinal-group ordinal-offset-group'>of</span>").appendTo(row);
+          span.css("margin", "0 10px");
+          if (date.type !== "ordinal" && date.type !== "ordinal-offset") span.css("display", "none");
+
+          // Ordinal Date month select
+          select = $("<select name='startMonthOrdinal' class='ordinal-group ordinal-offset-group'></select>").appendTo(row);
+          select.css({
+            width: "100px",
+            margin: "0 5px",
+          });
+          monthOptions.forEach((opt, i) => $(`<option value="${i}">${opt.name}</option>`).appendTo(select));
+          option = $("<option value='-1'>Any Month</option>").appendTo(select);
+          if (date.type === "ordinal-offset") option.attr("disabled", "disabled");
+          select.val(date.startMonthOrdinal);
+          if (date.type !== "ordinal" && date.type !== "ordinal-offset") select.css("display", "none");
+
+          // Ordinal Offset Row
+          row = $("<div class='form-row ordinal-offset-group'></div>").appendTo(inputRows);
+          if (date.type !== "ordinal-offset") row.css("display", "none");
+
+          // Ordinal Offset before value
+          input = $("<input type='number' name='offsetOrdinalBefore' min='0'></input>").appendTo(row);
+          input.css({
+            width: "65px",
+            marginLeft: "5px",
+          });
+          input.val(date.offsetOrdinalBefore);
+
+          // Ordinal Offset range text
+          span = $("<span>days before to</span>").appendTo(row);
+          span.css("margin", "0 10px");
+
+          // Ordinal Offset after value
+          input = $("<input type='number' name='offsetOrdinalAfter' min='0'></input>").appendTo(row);
+          input.css("width", "65px");
+          input.val(date.offsetOrdinalAfter);
+
+          // Ordinal Offset final text
+          span = $("<span>days after</span>").appendTo(row);
+          span.css("margin-left", "10px");
+
+          // Response field
+          row = $("<div class='form-row'></div>").appendTo(inputRows);
+          $(`<label for="${timestamp}">Response</label>`).appendTo(row);
+          input = $(`<input type="text" name="response" required id="${timestamp}" placeholder="Response"></input>`).appendTo(row);
+          input.val(date.response);
+        },
+        sortable: true,
+        removable: true,
+      });
+
+      node.dates.forEach(date => $("#node-input-dates-container").editableList("addItem", date));
+    },
+    oneditsave: function () {
+      let dates = $("#node-input-dates-container").editableList("items");
+      let node = this;
+
+      node.dates = [];
+      dates.each(function () {
+        node.dates.push({
+          type: $(this).find("select[name='type']").val(),
+          startDate: parseInt($(this).find("input[name='startDate']").val()),
+          startDay: parseInt($(this).find("select[name='startDay']").val()),
+          startMonth: parseInt($(this).find("select[name='startMonth']").val()),
+          startMonthOrdinal: parseInt($(this).find("select[name='startMonthOrdinal']").val()),
+          startOrdinal: parseInt($(this).find("select[name='startOrdinal']").val()),
+          endDate: parseInt($(this).find("input[name='endDate']").val()),
+          endMonth: parseInt($(this).find("select[name='endMonth']").val()),
+          offsetOrdinalBefore: parseInt($(this).find("input[name='offsetOrdinalBefore']").val()),
+          offsetOrdinalAfter: parseInt($(this).find("input[name='offsetOrdinalAfter']").val()),
+          response: $(this).find("input[name='response']").val(),
+        });
+      });
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="special-date">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-defaultResponse">Default Response</label>
+    <input type="text" id="node-input-defaultResponse" placeholder="Enter a default response" />
+  </div>
+  <div class="form-row node-input-rule-container-row">
+    <h3>Date Entries</h3>
+    <ol id="node-input-dates-container"></ol>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="special-date">
+<p>Determines if a date is in a user defined list of special dates.</p>
+<h3>Inputs</h3>
+<dl class="message-properties">
+  <dt>payload <span class="property-type">any</span></dt>
+  <dd>Input triggers the date check.</dd>
+</dl>
+<h3>Outputs</h3>
+<dl class="message-properties">
+  <dt>payload <span class="property-type">string</span></dt>
+  <dd>The response string for the matched special date, or the default response string if no match was found.</dd>
+</dl>
+<h3>Details</h3>
+<p>When a message arrives, the node will check the current date against the configured special dates, and the message payload will be set to the appropriate response string.</p>
+<h3>Configuration</h3>
+<dl class="message-properties">
+  <dt>Default Response <span class="property-type">string</span></dt>
+  <dd>Response to be sent if no matching date definition is found. Defaults to "None".</dd>
+  <dt>Date Entries</dt>
+  <dd>
+    Definitions for date matching. All fields are required.  If a date definition is missing information the entry will still be saved, however the node will not consider invalid entries during processing.
+    <dl class="message-properties">
+      <dt>Date</dt>
+      <dd>Select a month from the dropdown, and enter a date value</dd>
+      <dt>Response <span class="property-type">string</span></dt>
+      <dd>The response string for the date entry</dd>
+    </dl>
+  </dd>
+  <dt>Date Range</dt>
+  <dd>
+    Match dates between the "From" date and the "To" date, inclusively. Dates can wrap from the end to the beginning of the year.
+    <dl class="message-properties">
+      <dt>From Date</dt>
+      <dd>Select a month from the dropdown, and enter a date value</dd>
+      <dt>To Date</dt>
+      <dd>Select a month from the dropdown, and enter a date value</dd>
+      <dt>Response <span class="property-type">string</span></dt>
+      <dd>The response string for the date entry</dd>
+    </dl>
+  </dd>
+  <dt>Ordinal Date</dt>
+  <dd>
+    Match an ordinal date description, such as "Third Tuesday of September" or "Every Friday of Any Month".
+    <dl class="message-properties">
+      <dt>Date</dt>
+      <dd>Select the ordinal value (First, Second, etc.), day, and month from their respective dropdowns. Selecting "Every" for the ordinal value will match every selected day for the selected month.  Selecting "Any" for the month will match the selected day across all months.</dd>
+      <dt>Response <span class="property-type">string</span></dt>
+      <dd>The response string for the date entry</dd>
+    </dl>
+  </dd>
+  <dt>Ordinal Date Offset Range</dt>
+  <dd>
+    Match a range of dates around the selected ordinal date description.
+    <dl class="message-properties">
+      <dt>Date</dt>
+      <dd>Select the ordinal value (First, Second, etc.), day, and month from their respective dropdowns. The "every" ordinal value and the "Any" month value are not available for ordinal date offset range entries</dd>
+      <dt>From Offset</dt>
+      <dd>The number of days before the given ordinal date that should be matched. Entering "0" will start the range with the ordinal date.</dd>
+      <dt>To Offset</dt>
+      <dd>The number of days after the given ordinal date that should be matched. Entering "0" will end the range with the ordinal date.</dd>
+      <dt>Response <span class="property-type">string</span></dt>
+      <dd>The response string for the date entry</dd>
+    </dl>
+  </dd>
+</dl>
+</script>

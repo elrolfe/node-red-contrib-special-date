@@ -1,0 +1,27 @@
+{
+  "name": "node-red-contrib-special-date",
+  "version": "1.0.0",
+  "description": "Node-RED node that determines if a date is in a user defined list of special dates",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elrolfe/node-red-contrib-special-date.git"
+  },
+  "author": "Eric Rolfe",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/elrolfe/node-red-contrib-special-date/issues"
+  },
+  "homepage": "https://github.com/elrolfe/node-red-contrib-special-date#readme",
+  "devDependencies": {
+    "jest": "^27.3.1"
+  },
+  "node-red": {
+    "nodes": {
+      "special-date": "index.js"
+    }
+  }
+}
