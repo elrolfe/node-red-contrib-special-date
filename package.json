@@ -1,7 +1,8 @@
 {
   "name": "node-red-contrib-special-date",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Node-RED node that determines if a date is in a user defined list of special dates",
+  "keywords": ["node-red", "date", "special date"],
   "main": "index.js",
   "scripts": {
     "test": "jest"
