@@ -38,12 +38,13 @@ module.exports = function (RED) {
     let node = this;
 
     node.dates = setupDates(config.dates, config.defaultResponse);
+    node.messageProperty = config.messageProperty;
 
     const run = function(msg, send, done) {
       if (!msg) msg = {};
 
       try {
-        msg.payload = checkDate(new Date(), node.dates);
+        msg[node.messageProperty] = checkDate(new Date(), node.dates);
       } catch (err) {
         if (node.showStatus)
           node.status({ fill: "red", shape: "dot", text: err.message || err });
@@ -56,7 +57,7 @@ module.exports = function (RED) {
         return;
       }
 
-      node.status({ fill: "green", shape: "dot", text: msg.payload });
+      node.status({ fill: "green", shape: "dot", text: msg[node.messageProperty] });
 
       if (send)
         send(msg);

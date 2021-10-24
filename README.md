@@ -12,3 +12,13 @@ In a terminal on your Node-RED server:
 cd ~/.node-red
 npm install node-red-contrib-special-date
 ```
+
+# Change Log
+v1.0.2
+* Can define which property to put the result in on the message object so the payload can pass through untouched.
+
+v1.0.1
+* Added keywords
+
+v1.0.0
+* Initial release

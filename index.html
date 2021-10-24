@@ -58,6 +58,7 @@
         }]
       },
       defaultResponse: { value: "None", required: true },
+      messageProperty: { value: "special", required: true },
       name: { value: "" },
     },
     inputs: 1,
@@ -305,6 +306,10 @@
     <input type="text" id="node-input-name" placeholder="Name" />
   </div>
   <div class="form-row">
+    <label for="node-input-messageProperty">Msg Property</label>
+    <input type="text" id="node-input-messageProperty" placeholder="Property to use on message object" />
+  </div>
+  <div class="form-row">
     <label for="node-input-defaultResponse">Default Response</label>
     <input type="text" id="node-input-defaultResponse" placeholder="Enter a default response" />
   </div>
@@ -330,6 +335,8 @@
 <p>When a message arrives, the node will check the current date against the configured special dates, and the message payload will be set to the appropriate response string.</p>
 <h3>Configuration</h3>
 <dl class="message-properties">
+  <dt>Msg Property <span class="property-type">string</span></dt>
+  <dd>Property to add to the msg object for the special date result. Defaults to "special".</dd>
   <dt>Default Response <span class="property-type">string</span></dt>
   <dd>Response to be sent if no matching date definition is found. Defaults to "None".</dd>
   <dt>Date Entries</dt>
